@@ -253,6 +253,9 @@ var (
 	// OPA policy system.
 	globalPolicyOPA *opa.Opa
 
+	// Okera policy system.
+	globalPolicyOkera *okeraIAMStore
+
 	// Deployment ID - unique per deployment
 	globalDeploymentID string
 

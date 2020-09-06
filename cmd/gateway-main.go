@@ -244,7 +244,12 @@ func StartGateway(ctx *cli.Context, gw Gateway) {
 		registerSTSRouter(router)
 	}
 
-	enableIAMOps := globalEtcdClient != nil
+	globalPolicyOkera, err = newOkeraIAMStore(GlobalContext)
+	if err != nil {
+		panic(err)
+	}
+
+	enableIAMOps := globalEtcdClient != nil || globalPolicyOkera != nil
 
 	// Enable IAM admin APIs if etcd is enabled, if not just enable basic
 	// operations such as profiling, server info etc.
