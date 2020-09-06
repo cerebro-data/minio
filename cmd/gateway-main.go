@@ -30,9 +30,11 @@ import (
 	"github.com/minio/cli"
 	xhttp "github.com/minio/minio/cmd/http"
 	"github.com/minio/minio/cmd/logger"
+	"github.com/minio/minio/pkg/auth"
 	"github.com/minio/minio/pkg/certs"
 	"github.com/minio/minio/pkg/color"
 	"github.com/minio/minio/pkg/env"
+	iampolicy "github.com/minio/minio/pkg/iam/policy"
 )
 
 var (
@@ -43,6 +45,21 @@ var (
 		HideHelpCommand: true,
 	}
 )
+
+type PolicyEngine interface {
+	Lock()
+	Unlock()
+	RLock()
+	RUnlock()
+	IsAllowed(args iampolicy.Args) (bool, error)
+	GetUserCredentials(user string) (auth.Credentials, error)
+	LoadAll(ctx context.Context, sys *IAMSys) error
+	Watch(ctx context.Context, sys *IAMSys)
+}
+
+func SetGlobalPolicyEngine(engine PolicyEngine) {
+	globalPolicyEngine = engine
+}
 
 // GatewayLocker implements custom NewNSLock implementation
 type GatewayLocker struct {
@@ -244,7 +261,7 @@ func StartGateway(ctx *cli.Context, gw Gateway) {
 		registerSTSRouter(router)
 	}
 
-	enableIAMOps := globalEtcdClient != nil
+	enableIAMOps := globalEtcdClient != nil || globalPolicyEngine != nil
 
 	// Enable IAM admin APIs if etcd is enabled, if not just enable basic
 	// operations such as profiling, server info etc.

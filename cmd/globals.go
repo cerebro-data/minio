@@ -253,6 +253,9 @@ var (
 	// OPA policy system.
 	globalPolicyOPA *opa.Opa
 
+	// Global injectable policy system.
+	globalPolicyEngine PolicyEngine
+
 	// Deployment ID - unique per deployment
 	globalDeploymentID string
 

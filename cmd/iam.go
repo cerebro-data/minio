@@ -422,7 +422,14 @@ func (sys *IAMSys) Init(ctx context.Context, objAPI ObjectLayer) {
 		return
 	}
 
-	if globalEtcdClient == nil {
+	if globalPolicyEngine != nil {
+		fmt.Println("ITAY: Starting up Okera IAM")
+		store, err := newOkeraIAMStore(globalPolicyEngine)
+		if err != nil {
+			panic(err)
+		}
+		sys.store = store
+	} else if globalEtcdClient == nil {
 		sys.store = newIAMObjectStore(ctx, objAPI)
 	} else {
 		sys.store = newIAMEtcdStore(ctx)
@@ -1804,8 +1811,51 @@ func (sys *IAMSys) IsAllowedSTS(args iampolicy.Args) bool {
 	return combinedPolicy.IsAllowed(args)
 }
 
+// type Args struct {
+// 	AccountName     string                 `json:"account"`
+// 	Action          Action                 `json:"action"`
+// 	BucketName      string                 `json:"bucket"`
+// 	ConditionValues map[string][]string    `json:"conditions"`
+// 	IsOwner         bool                   `json:"owner"`
+// 	ObjectName      string                 `json:"object"`
+// 	Claims          map[string]interface{} `json:"claims"`
+// }
+
+// type ListFilesParams struct {
+// 	Op             okerarecordservice.TListFilesOp
+// 	Object         *string
+// 	NextKey        []byte
+// 	RequestingUser *string
+// 	VersionID      *string
+// 	PosixSemantics *bool
+// }
+
+// type ListFilesResponse struct {
+// 	Files     []string
+// 	Done      bool
+// 	FileDescs []*okerarecordservice.TFileDesc
+// }
+
+//   TListFilesOp_LIST TListFilesOp = 0
+//   TListFilesOp_READ TListFilesOp = 1
+//   TListFilesOp_WRITE TListFilesOp = 2
+//   TListFilesOp_GET TListFilesOp = 3
+//   TListFilesOp_DELETE TListFilesOp = 4
+
 // IsAllowed - checks given policy args is allowed to continue the Rest API.
 func (sys *IAMSys) IsAllowed(args iampolicy.Args) bool {
+	// If Okera policy is configured, use Okera always
+	if globalPolicyEngine != nil {
+		allowed, err := globalPolicyEngine.IsAllowed(args)
+		if err != nil {
+			// logger.LogIf(GlobalContext, err)
+			fmt.Printf("Error while checking Okera authorization: %v\n", err)
+			return false
+		}
+
+		return allowed
+	}
+
 	// If opa is configured, use OPA always.
 	if globalPolicyOPA != nil {
 		ok, err := globalPolicyOPA.IsAllowed(args)
@@ -1934,6 +1984,14 @@ func (sys *IAMSys) EnableLDAPSys() {
 	defer sys.store.unlock()
 
 	sys.usersSysType = LDAPUsersSysType
+}
+
+func (sys *IAMSys) GetUsersMap() map[string]auth.Credentials {
+	return sys.iamUsersMap
+}
+
+func (sys *IAMSys) GetUserPolicyMap() map[string]MappedPolicy {
+	return sys.iamUserPolicyMap
 }
 
 // NewIAMSys - creates new config system object.

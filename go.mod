@@ -61,6 +61,7 @@ require (
 	github.com/nats-io/stan.go v0.7.0
 	github.com/ncw/directio v1.0.5
 	github.com/nsqio/go-nsq v1.0.7
+	github.com/okera/gokera v0.0.0-00010101000000-000000000000
 	github.com/philhofer/fwd v1.0.0 // indirect
 	github.com/pierrec/lz4 v2.4.0+incompatible
 	github.com/pkg/errors v0.9.1
@@ -89,3 +90,6 @@ require (
 	gopkg.in/olivere/elastic.v5 v5.0.86
 	gopkg.in/yaml.v2 v2.2.8
 )
+
+// TODO: need to figure out how to fix this path
+replace github.com/okera/gokera => /Users/itay/work/okera/cerebro/go/gokera
